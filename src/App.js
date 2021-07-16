@@ -20,7 +20,6 @@ function App() {
 
     // set initial state
     setImage(file);
-    setLoading(80);
     setError(null);
 
     // upload image
