@@ -93,6 +93,7 @@ function App() {
                 />
                 {/* Image Name */}
                 {image.name && (
+                  // SAMA TAMBAHIN INI YAK
                   <p className="text-start">
                     {image.name} <a href={fileUrl}> download</a>
                   </p>
