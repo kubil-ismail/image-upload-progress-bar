@@ -1,14 +1,16 @@
 import React from "react";
 import LoadingImage from "./componentss/LoadingImage";
 import ErrorImage from "./componentss/ErrorImage";
+import firebase from "./Firebase";
 import "./App.css";
 
 function App() {
   const [image, setImage] = React.useState({});
-  const [loading, setLoading] = React.useState(false);
+  const [loading, setLoading] = React.useState(0);
   const [error, setError] = React.useState(null);
   const [fileUrl, setFileUrl] = React.useState(null);
   const inputFile = React.useRef(null);
+
   const onSelectFile = () => {
     // `current` points to the mounted file input element
     inputFile.current.click();
@@ -19,8 +21,6 @@ function App() {
     const file = e?.target?.files[0];
 
     // set initial state
-    setImage(file);
-    setLoading(true);
     setError(null);
 
     // upload image
@@ -28,14 +28,32 @@ function App() {
   };
 
   const handleUpload = (file) => {
-    const objectUrl = URL.createObjectURL(file);
+    const uploadFile = firebase.storage().ref("/").child(file.name).put(file);
 
-    // set state
-    setLoading(false);
-    setFileUrl(objectUrl);
-    setError(null);
+    uploadFile.on(
+      "state_changed",
+      (snapshot) => {
+        const progress = Math.round(
+          (snapshot.bytesTransferred * 100) / snapshot.totalBytes
+        );
+        setLoading(progress);
+      },
+      (error) => {
+        setLoading(0);
+        setError("Something error, try again !");
+      },
+      (res) => {
+        uploadFile.snapshot.ref.getDownloadURL().then((url) => {
+          setLoading(0);
+          setError(null);
+          setFileUrl(url);
+          setImage(file);
+        });
+      }
+    );
   };
 
+  const isLoading = loading !== 0;
   return (
     <div className="App">
       <div className="container">
@@ -43,8 +61,8 @@ function App() {
           <div className="col col-lg-5">
             <div className="card">
               {/* Loading Image */}
-              {loading && (
-                <LoadingImage valuemax="100" valuemin="0" valuenow="80" />
+              {isLoading && (
+                <LoadingImage valuemax="100" valuemin="0" valuenow={loading} />
               )}
               {/* Handle Error */}
               {error && <ErrorImage errorMsg={error} />}
@@ -57,7 +75,7 @@ function App() {
                 />
               )}
               {/* Placeholder image */}
-              {!fileUrl && !loading && (
+              {!fileUrl && !isLoading && (
                 <img
                   className="card-top-image"
                   src="https://i.stack.imgur.com/y9DpT.jpg"
@@ -74,16 +92,20 @@ function App() {
                   onChange={handleChange}
                 />
                 {/* Image Name */}
-                {image.name && <p className="text-start">{image.name}</p>}
+                {image.name && (
+                  <p className="text-start">
+                    {image.name} <a href={fileUrl}> download</a>
+                  </p>
+                )}
                 {/* Button */}
                 <div className="d-grid">
                   <button
                     className="btn btn-primary"
                     onClick={onSelectFile}
-                    disabled={loading}
+                    disabled={isLoading}
                   >
                     {/* handle loading */}
-                    {loading && (
+                    {isLoading && (
                       <>
                         <span
                           className="spinner-grow spinner-grow-sm"
@@ -93,7 +115,7 @@ function App() {
                         Loading...
                       </>
                     )}
-                    {!loading && "Select image"}
+                    {!isLoading && "Select image"}
                   </button>
                 </div>
               </div>
